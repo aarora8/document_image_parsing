@@ -148,14 +148,19 @@ def get_smaller_angle(bounding_box):
         return ortho_vector_angle_updated
 
 
-def rotated_points(bounding_box, center):
+def rotated_points(bounding_box, center, if_opposite_direction=False):
     p1, p2, p3, p4 = bounding_box.corner_points
     x1, y1 = p1
     x2, y2 = p2
     x3, y3 = p3
     x4, y4 = p4
     center_x, center_y = center
-    rotation_angle_in_rad = -get_smaller_angle(bounding_box)
+
+    if if_opposite_direction:
+        rotation_angle_in_rad = get_smaller_angle(bounding_box)
+    else:
+        rotation_angle_in_rad = -get_smaller_angle(bounding_box)
+
     x_dash_1 = (x1 - center_x) * cos(rotation_angle_in_rad) - (y1 - center_y) * sin(rotation_angle_in_rad) + center_x
     x_dash_2 = (x2 - center_x) * cos(rotation_angle_in_rad) - (y2 - center_y) * sin(rotation_angle_in_rad) + center_x
     x_dash_3 = (x3 - center_x) * cos(rotation_angle_in_rad) - (y3 - center_y) * sin(rotation_angle_in_rad) + center_x
@@ -165,6 +170,7 @@ def rotated_points(bounding_box, center):
     y_dash_2 = (y2 - center_y) * cos(rotation_angle_in_rad) + (x2 - center_x) * sin(rotation_angle_in_rad) + center_y
     y_dash_3 = (y3 - center_y) * cos(rotation_angle_in_rad) + (x3 - center_x) * sin(rotation_angle_in_rad) + center_y
     y_dash_4 = (y4 - center_y) * cos(rotation_angle_in_rad) + (x4 - center_x) * sin(rotation_angle_in_rad) + center_y
+
     return x_dash_1, y_dash_1, x_dash_2, y_dash_2, x_dash_3, y_dash_3, x_dash_4, y_dash_4
 
 
@@ -203,8 +209,6 @@ def set_line_image_data(image, line_id, image_file_name):
 
 
 def get_line_images_from_page_image(image_file_name, madcat_file_path):
-    im_wo_pad = Image.open(image_file_name)
-    im = pad_image(im_wo_pad)
     doc = minidom.parse(madcat_file_path)
     zone = doc.getElementsByTagName('zone')
     for node in zone:
@@ -224,6 +228,7 @@ def get_line_images_from_page_image(image_file_name, madcat_file_path):
         bounding_box = minimum_bounding_box(updated_mbb_input)
 
         p1, p2, p3, p4 = bounding_box.corner_points
+        print(p1, p2, p3, p4)
         x1, y1 = p1
         x2, y2 = p2
         x3, y3 = p3
@@ -232,53 +237,59 @@ def get_line_images_from_page_image(image_file_name, madcat_file_path):
         min_y = int(min(y1, y2, y3, y4))
         max_x = int(max(x1, x2, x3, x4))
         max_y = int(max(y1, y2, y3, y4))
-        box = (min_x, min_y, max_x, max_y)
-        region_initial = im.crop(box)
-        # ax.imshow(region_initial)
-        # plt.show()
-        # region_initial = im[min_y:max_y, min_x:max_x]
+        center_x = (max_x - min_x) / 2
+        center_y = (max_y - min_y) / 2
 
-        # #calculate new crop points
         rot_points = []
         p1_new = (x1 - min_x, y1 - min_y)
         p2_new = (x2 - min_x, y2 - min_y)
         p3_new = (x3 - min_x, y3 - min_y)
         p4_new = (x4 - min_x, y4 - min_y)
+        print(p1_new, p2_new, p3_new, p4_new)
+
         rot_points.append(p1_new)
         rot_points.append(p2_new)
         rot_points.append(p3_new)
         rot_points.append(p4_new)
         cropped_bounding_box = bounding_box_tuple(bounding_box.area,
-            bounding_box.length_parallel,
-            bounding_box.length_orthogonal,
-            bounding_box.length_orthogonal,
-            bounding_box.unit_vector,
-            bounding_box.unit_vector_angle,
-            set(rot_points)
-        )
-
-        rotation_angle_in_rad = get_smaller_angle(cropped_bounding_box)
-        img2 = region_initial.rotate(degrees(rotation_angle_in_rad), resample=Image.BICUBIC)
-        # ax.imshow(img2)
-        # plt.show()
-        #img2 = rotate(region_initial, degrees(rotation_angle_in_rad), order=3)
+                                                  bounding_box.length_parallel,
+                                                  bounding_box.length_orthogonal,
+                                                  bounding_box.length_orthogonal,
+                                                  bounding_box.unit_vector,
+                                                  bounding_box.unit_vector_angle,
+                                                  set(rot_points)
+                                                  )
         x_dash_1, y_dash_1, x_dash_2, y_dash_2, x_dash_3, y_dash_3, x_dash_4, y_dash_4 = rotated_points(
-            cropped_bounding_box, get_center(region_initial))
+            cropped_bounding_box, (center_x , center_y))
+        print(x_dash_1, y_dash_1, x_dash_2, y_dash_2, x_dash_3, y_dash_3, x_dash_4, y_dash_4)
+
+        rot_points = []
+        p1_new = (x_dash_1, y_dash_1)
+        p2_new = (x_dash_2, y_dash_2)
+        p3_new = (x_dash_3, y_dash_3)
+        p4_new = (x_dash_4, y_dash_4)
+        rot_points.append(p1_new)
+        rot_points.append(p2_new)
+        rot_points.append(p3_new)
+        rot_points.append(p4_new)
+        cropped_bounding_box = bounding_box_tuple(bounding_box.area,
+                                                  bounding_box.length_parallel,
+                                                  bounding_box.length_orthogonal,
+                                                  bounding_box.length_orthogonal,
+                                                  bounding_box.unit_vector,
+                                                  bounding_box.unit_vector_angle,
+                                                  set(rot_points)
+                                                  )
+        x_dash_1_old, y_dash_1_old, x_dash_2_old, y_dash_2_old, x_dash_3_old, y_dash_3_old, x_dash_4_old, y_dash_4_old = rotated_points(
+            cropped_bounding_box, (center_x, center_y), True)
+        print(x_dash_1_old, y_dash_1_old, x_dash_2_old, y_dash_2_old, x_dash_3_old, y_dash_3_old, x_dash_4_old, y_dash_4_old)
+
+        p1_new = (x1 - min_x, y1 - min_y)
+        p2_new = (x2 - min_x, y2 - min_y)
+        p3_new = (x3 - min_x, y3 - min_y)
+        p4_new = (x4 - min_x, y4 - min_y)
 
 
-        min_x = int(min(x_dash_1, x_dash_2, x_dash_3, x_dash_4))
-        min_y = int(min(y_dash_1, y_dash_2, y_dash_3, y_dash_4))
-        max_x = int(max(x_dash_1, x_dash_2, x_dash_3, x_dash_4))
-        max_y = int(max(y_dash_1, y_dash_2, y_dash_3, y_dash_4))
-        box = (min_x, min_y, max_x, max_y)
-        region_final = img2.crop(box)
-        ax.imshow(region_final)
-        plt.show()
-        #region_final = img2[min_y:max_y, min_x:max_x]
-        set_line_image_data(region_final, id, image_file_name)
-        # imshow(region_final)
-        # show()
-        # input("Press the <ENTER> key to continue...")
 
 
 ### main ###

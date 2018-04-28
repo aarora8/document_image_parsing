@@ -265,6 +265,7 @@ def get_line_images_from_page_image(image_file_name, madcat_file_path):
         x_dash_1, y_dash_1, x_dash_2, y_dash_2, x_dash_3, y_dash_3, x_dash_4, y_dash_4 = rotated_points(
             cropped_bounding_box, get_center(region_initial))
 
+        print(x_dash_1, y_dash_1, x_dash_2, y_dash_2, x_dash_3, y_dash_3, x_dash_4, y_dash_4)
 
         min_x = int(min(x_dash_1, x_dash_2, x_dash_3, x_dash_4))
         min_y = int(min(y_dash_1, y_dash_2, y_dash_3, y_dash_4))
