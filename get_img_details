@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import sys
+import numpy as np
+from PIL import Image
+
+parser = argparse.ArgumentParser(description="""Computes the image lengths (i.e. width) in an image data dir
+                                                and writes them (by default) to image2num_frames.""")
+parser.add_argument('dir', type=str,
+                    help='Source data directory (containing images.scp)')
+parser.add_argument('--out-ark', type=str, default=None,
+                    help='Where to write the output image-to-num_frames info. '
+                    'Default: "dir"/image2num_frames')
+args = parser.parse_args()
+
+
+### main ###
+
+data_list_path = os.path.join(args.dir,'images.scp')
+#data_list_path = os.path.join('lines','hyp_line_image_transcription_mapping.txt')
+
+if not args.out_ark:
+    args.out_ark = os.path.join(args.dir,'image2num_frames_new')
+if args.out_ark == '-':
+    out_fh = sys.stdout
+else:
+    out_fh = open(args.out_ark, 'w', encoding='latin-1')
+
+#out_fh = open(os.path.join('lines','image_to_num_frames'), 'w', encoding='latin-1')
+with open(data_list_path) as f:
+    for line in f:
+        line = line.strip()
+        line_vect = line.split(' ')
+        image_id = line_vect[0]
+        image_path = line_vect[1]
+        #image_path = line_vect[0]
+        #image_id = os.path.basename(image_path)
+        im = Image.open(image_path)
+        sx, sy = im.size
+        val = str(sx) + '_' + str(sy)
+        print('{} {}'.format(image_id, val), file=out_fh)
+
+out_fh.close()
